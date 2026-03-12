@@ -17,12 +17,16 @@ RUN ./mvnw -B -DskipTests package
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# Install curl for healthchecks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install curl and postgresql client for healthchecks and wait script
+RUN apt-get update && apt-get install -y curl postgresql-client && rm -rf /var/lib/apt/lists/*
 
 # Copy the built jar from the builder stage
 COPY --from=builder /workspace/app/target/*.jar app.jar
 
+# Copy helper script to wait for DB and make it executable
+COPY wait-for-db.sh ./wait-for-db.sh
+RUN chmod +x ./wait-for-db.sh
+
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["/app/wait-for-db.sh"]
